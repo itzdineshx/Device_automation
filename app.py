@@ -37,8 +37,8 @@ class LaptopAssistantApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Laptop Control Assistant")
-        self.root.geometry("900x650")
-        self.root.minsize(700, 500)
+        self.root.geometry("1050x720")
+        self.root.minsize(800, 550)
         self.root.configure(bg=BG)
 
         # Try to set icon (ignore if fails)
@@ -73,48 +73,121 @@ class LaptopAssistantApp:
         main_frame = tk.Frame(self.root, bg=BG)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
-        # ── Sidebar (quick actions) ──
-        sidebar = tk.Frame(main_frame, bg=BG_DARK, width=200)
-        sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(1, 0))
-        sidebar.pack_propagate(False)
+        # ── Sidebar (quick actions) — scrollable ──
+        sidebar_outer = tk.Frame(main_frame, bg=BG_DARK, width=210)
+        sidebar_outer.pack(side=tk.RIGHT, fill=tk.Y, padx=(1, 0))
+        sidebar_outer.pack_propagate(False)
 
-        tk.Label(sidebar, text="Quick Actions", font=FONT_BOLD, bg=BG_DARK, fg=TEXT).pack(pady=(12, 8))
+        tk.Label(sidebar_outer, text="Quick Actions", font=FONT_BOLD, bg=BG_DARK, fg=TEXT).pack(pady=(10, 4))
 
-        # Quick action buttons
+        # Scrollable canvas for sidebar buttons
+        sidebar_canvas = tk.Canvas(sidebar_outer, bg=BG_DARK, highlightthickness=0, width=195)
+        sidebar_scroll = ttk.Scrollbar(sidebar_outer, orient=tk.VERTICAL, command=sidebar_canvas.yview)
+        sidebar_inner = tk.Frame(sidebar_canvas, bg=BG_DARK)
+
+        sidebar_inner.bind("<Configure>", lambda e: sidebar_canvas.configure(scrollregion=sidebar_canvas.bbox("all")))
+        sidebar_canvas.create_window((0, 0), window=sidebar_inner, anchor="nw")
+        sidebar_canvas.configure(yscrollcommand=sidebar_scroll.set)
+
+        sidebar_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sidebar_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Mouse wheel scrolling
+        def _on_sidebar_mousewheel(event):
+            sidebar_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        sidebar_canvas.bind_all("<MouseWheel>", _on_sidebar_mousewheel)
+
+        # Quick action buttons — organized by category
         quick_actions = [
             ("⚡ Connectivity", None, True),
-            ("Bluetooth ON",    "turn on bluetooth"),
-            ("Bluetooth OFF",   "turn off bluetooth"),
-            ("WiFi ON",         "turn on wifi"),
-            ("WiFi OFF",        "turn off wifi"),
-            ("🔊 Audio", None, True),
-            ("Mute / Unmute",   "mute"),
-            ("Volume 50%",      "set volume to 50"),
-            ("Volume 100%",     "set volume to 100"),
+            ("Bluetooth ON",     "turn on bluetooth"),
+            ("Bluetooth OFF",    "turn off bluetooth"),
+            ("WiFi ON",          "turn on wifi"),
+            ("WiFi OFF",         "turn off wifi"),
+            ("Hotspot",          "open hotspot settings"),
+            ("Airplane Mode",    "open airplane settings"),
+
+            ("🔊 Audio & Media", None, True),
+            ("Mute / Unmute",    "mute"),
+            ("Volume 50%",       "set volume to 50"),
+            ("Volume 100%",      "set volume to 100"),
+            ("⏯ Play/Pause",    "play pause"),
+            ("⏭ Next Track",    "next track"),
+            ("⏮ Prev Track",    "previous track"),
+
             ("💡 Display", None, True),
-            ("Brightness 30%",  "brightness to 30"),
-            ("Brightness 70%",  "brightness to 70"),
-            ("Night Light",     "turn on night light"),
+            ("Brightness 30%",   "brightness to 30"),
+            ("Brightness 70%",   "brightness to 70"),
+            ("Dark Mode",        "turn on dark mode"),
+            ("Light Mode",       "turn on light mode"),
+            ("Night Light",      "turn on night light"),
+
+            ("🪟 Windows", None, True),
+            ("Minimize All",     "minimize all windows"),
+            ("Restore All",      "restore all windows"),
+            ("Snap Left",        "snap window left"),
+            ("Snap Right",       "snap window right"),
+            ("New Desktop",      "new virtual desktop"),
+            ("Task View",        "task view"),
+
             ("🖥️ System", None, True),
-            ("Screenshot",      "take a screenshot"),
-            ("Lock Screen",     "lock my laptop"),
-            ("Open Settings",   "open settings"),
+            ("Screenshot",       "take a screenshot"),
+            ("Lock Screen",      "lock my laptop"),
+            ("Sleep",            "sleep my laptop"),
+            ("Restart",          "restart my laptop"),
+            ("Cancel Shutdown",  "cancel shutdown"),
+
+            ("📊 Info", None, True),
+            ("Battery Level",    "battery level"),
+            ("System Info",      "system info"),
+            ("CPU Usage",        "cpu usage"),
+            ("RAM Usage",        "ram usage"),
+            ("Disk Space",       "disk space"),
+            ("My IP Address",    "my ip address"),
+            ("Uptime",           "uptime"),
+
+            ("🔒 Security", None, True),
+            ("Quick Virus Scan", "quick virus scan"),
+            ("Windows Update",   "check for updates"),
+            ("Clear Temp Files", "clear temp files"),
+            ("Disk Cleanup",     "disk cleanup"),
+            ("Empty Recycle Bin","empty recycle bin"),
+
+            ("📂 Folders", None, True),
+            ("Downloads",        "open downloads"),
+            ("Documents",        "open documents"),
+            ("Desktop",          "open desktop"),
+            ("File Explorer",    "open file explorer"),
+
+            ("🛠️ Tools", None, True),
+            ("Task Manager",     "open task manager"),
+            ("Running Apps",     "list running apps"),
+            ("Emoji Panel",      "open emoji panel"),
+            ("On-Screen KB",     "on-screen keyboard"),
+            ("Speed Test",       "speed test"),
+            ("Date & Time",      "what time is it"),
+            ("Open Settings",    "open settings"),
+
+            ("⚡ Power", None, True),
+            ("High Performance", "power plan high performance"),
+            ("Power Saver",      "power plan power saver"),
+            ("Balanced",         "power plan balanced"),
         ]
 
         for item in quick_actions:
             if len(item) == 3:
                 # Section header
-                tk.Label(sidebar, text=item[0], font=FONT_SMALL, bg=BG_DARK, fg=TEXT_DIM).pack(
-                    anchor=tk.W, padx=12, pady=(8, 2))
+                tk.Label(sidebar_inner, text=item[0], font=FONT_SMALL, bg=BG_DARK, fg=TEXT_DIM).pack(
+                    anchor=tk.W, padx=10, pady=(8, 2))
             else:
                 label, cmd = item
                 btn = tk.Button(
-                    sidebar, text=label, font=FONT_BTN,
+                    sidebar_inner, text=label, font=FONT_BTN,
                     bg=BG_CARD, fg=TEXT, activebackground=ACCENT, activeforeground="white",
-                    bd=0, relief=tk.FLAT, cursor="hand2", padx=8, pady=4,
+                    bd=0, relief=tk.FLAT, cursor="hand2", padx=8, pady=3,
                     command=lambda c=cmd: self._send_command(c)
                 )
-                btn.pack(fill=tk.X, padx=10, pady=2)
+                btn.pack(fill=tk.X, padx=8, pady=1)
                 btn.bind("<Enter>", lambda e, b=btn: b.config(bg=ACCENT))
                 btn.bind("<Leave>", lambda e, b=btn: b.config(bg=BG_CARD))
 
@@ -181,13 +254,20 @@ class LaptopAssistantApp:
     def _add_welcome(self):
         self._append_chat("  ⚡ Laptop Control Assistant\n", "user")
         self._append_chat(
-            "  Type commands in plain English to control your laptop.\n"
-            "  Use the quick action buttons on the right, or type things like:\n\n"
-            '    "turn on bluetooth"      "turn off wifi"\n'
-            '    "set volume to 70"       "mute the sound"\n'
-            '    "brightness to 50"       "open chrome"\n'
-            '    "search for python tips" "take a screenshot"\n'
-            '    "lock my computer"       "open youtube.com"\n\n',
+            "  Control EVERYTHING on your laptop with plain English!\n\n"
+            "  ⚡ Connectivity   \"turn on bluetooth\"  \"turn off wifi\"  \"open hotspot\"\n"
+            "  🔊 Audio          \"volume to 70\"  \"mute\"  \"next track\"  \"play/pause\"\n"
+            "  💡 Display         \"brightness 50\"  \"dark mode\"  \"night light\"\n"
+            "  🪟 Windows        \"minimize all\"  \"snap left\"  \"new desktop\"  \"task view\"\n"
+            "  🖥️ System         \"screenshot\"  \"lock\"  \"sleep\"  \"shutdown\"  \"restart\"\n"
+            "  📊 Info            \"battery level\"  \"cpu usage\"  \"ram usage\"  \"disk space\"\n"
+            "  🌐 Network        \"my ip\"  \"speed test\"  \"flush dns\"  \"wifi password\"\n"
+            "  📂 Files           \"open downloads\"  \"empty recycle bin\"  \"create folder\"\n"
+            "  🔒 Security       \"virus scan\"  \"update windows\"  \"clear temp\"\n"
+            "  🛠️ Apps            \"open chrome\"  \"close notepad\"  \"running apps\"\n"
+            "  🔍 Web             \"search for AI news\"  \"open youtube.com\"\n"
+            "  ⚡ Power           \"high performance\"  \"power saver\"  \"hibernate\"\n\n"
+            "  Type anything or use the Quick Action buttons on the right →\n\n",
             "welcome"
         )
 
